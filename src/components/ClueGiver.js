@@ -8,11 +8,12 @@ const Option = Select.Option
 export default class ClueGiver extends Component{
   constructor(props){
     super(props)
+    console.log(props.players)
     var players = []
-    for (let i = 1; i < props.players.length; i++){
-      players.push(<Option key={i}>Player {i}</Option>)
+    for (let i = 0; i < props.players.length; i++){
+      if (i != props.player) players.push(<Option key={i}>Player {i}</Option>)
     }
-    this.state = {selectedPlayer: -1, players: players, playerHand: [], numbers: [], colors: [], clue: false}
+    this.state = {selectedPlayer: -1, players: players, playerHand: [], numbers: [], colors: [], clue: false, reset: false}
   }
 
   handleClueGiving(){
@@ -40,11 +41,11 @@ export default class ClueGiver extends Component{
   filterHand(color = "", number = ""){
     const playerHand = this.props.players[this.state.selectedPlayer]
     if (color){
-      this.buildHand(playerHand.filter((card)=>{return card.color === color}))
+      this.buildHand(playerHand.filter((card)=>{if (card) return card.color === color; else return false}))
       this.setState({clue: {color: color}})
     }
     else if (number){
-      this.buildHand(playerHand.filter((card)=>{return card.number === number}))
+      this.buildHand(playerHand.filter((card)=>{if (card) return card.number === number; else return false}))
       this.setState({clue: {number: number}})
     }
     else {
@@ -75,6 +76,7 @@ export default class ClueGiver extends Component{
     const rowStyle = {}
     return (
       <Modal title="Give Clue" visible={this.props.visible} onOk={()=>{this.handleClueGiving()}} okText='Give Clue' cancelText='Cancel' onCancel={this.props.cancelFunc}>
+        <Button onClick={()=>{this.selectPlayer(this.state.selectedPlayer)}}>Reset</Button>
         <Select defaultValue='None Selected' onChange={this.selectPlayer} style={{width: "10vw"}}>
           {this.state.players}
         </Select>

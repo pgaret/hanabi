@@ -45,7 +45,7 @@ export default class Player extends Component{
           <Col span={12}>
             <Card style={cardStyle} title={"Player "+this.props.name}>
               <Row>
-                <PlayerHand selectCard={this.selectCard} hand={this.props.players[0]} />
+                <PlayerHand selectCard={this.selectCard} hand={this.props.players[this.props.name]} turn={this.props.turn == this.props.name} />
               </Row>
             </Card>
           </Col>
@@ -53,17 +53,17 @@ export default class Player extends Component{
               <Col span={12}>
                 <Button onClick={()=>{this.setState({playCard: true})}}>Play Card</Button>
                 <Button onClick={()=>{this.setState({discardCard: true})}}>Discard Card</Button>
-                <Button onClick={()=>{this.setState({giveClue: true})}}>Give Clue</Button>
+                <Button disabled={this.props.clues < 1} onClick={()=>{this.setState({giveClue: true})}}>Give Clue</Button>
               </Col>
               : <p>Waiting for Player {this.props.turn}</p>
           }
         </Row>
-        <ClueGiver visible={this.state.giveClue} giveClue={this.giveClue} cancelFunc={()=>{this.setState({giveClue: false})}} players={this.props.players} />
+        <ClueGiver visible={this.state.giveClue} giveClue={this.giveClue} cancelFunc={()=>{this.setState({giveClue: false})}} players={this.props.players} player={this.props.name} />
         <Modal title="Play A Card" visible={this.state.playCard} onOk={this.playCard} okText='Play' cancelText='Cancel' onCancel={()=>{this.setState({playCard: false})}}>
-           <PlayerHand selectCard={this.selectCard} hand={this.props.players[0]} />
+           <PlayerHand selectCard={this.selectCard} hand={this.props.players[this.props.name]} turn={true} />
         </Modal>
         <Modal title="Discard A Card" visible={this.state.discardCard} onOk={this.discardCard} okText='Discard' cancelText='Cancel' onCancel={()=>{this.setState({discardCard: false})}}>
-           <PlayerHand selectCard={this.selectCard} hand={this.props.players[0]} />
+           <PlayerHand selectCard={this.selectCard} hand={this.props.players[this.props.name]} turn={true} />
         </Modal>
 
       </div>

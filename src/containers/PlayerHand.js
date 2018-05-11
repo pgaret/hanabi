@@ -11,7 +11,16 @@ export default class PlayerHand extends Component{
 
   render(){
     const hand = this.props.hand.map((card, index)=>{
-      return <PlayerCard selectCard={this.props.selectCard} key={index} index={index} card={card} clues={card.clues} />
+      if (card){
+        return <PlayerCard
+          selectCard={this.props.selectCard}
+          key={index}
+          index={index}
+          card={card}
+          clues={card.clues}
+          turn={this.props.turn}
+        />
+      }
     })
     return (
       <Row>

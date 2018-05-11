@@ -33,7 +33,7 @@ class App extends Component {
       {color: 'green', number: 3, clues: {}},{color: 'green', number: 3, clues: {}},
       {color: 'green', number: 4, clues: {}},{color: 'green', number: 4, clues: {}},
       {color: 'green', number: 5, clues: {}}
-    ], discard: [], playerCount: 3, players: [], log: [], start: false, turn: 0, fireworks: {blue: 0, white: 0, yellow: 0, red: 0, green: 0}}
+    ], discard: [], playerCount: 3, players: [], log: [], start: false, endTurn: false, turn: 0, fireworks: {blue: 0, white: 0, yellow: 0, red: 0, green: 0}}
     this.playCard = this.playCard.bind(this)
     this.drawCard = this.drawCard.bind(this)
     this.discardCard = this.discardCard.bind(this)
@@ -49,7 +49,6 @@ class App extends Component {
     if (this.state.playerCount > 1){
       var updatedDeck = this.state.deck
       var players = []
-      this.setState({start: true})
       for (let i = 0; i < this.state.playerCount; i++){
         var player = []
         for (var k = 0; k < 5; k++){
@@ -59,7 +58,7 @@ class App extends Component {
         }
         players.push(player)
       }
-      this.setState({players: players, deck: updatedDeck})
+      this.setState({players: players, deck: updatedDeck, start: true})
     }
   }
 
@@ -73,16 +72,15 @@ class App extends Component {
     if (card.number === this.state.fireworks[card.color]+1){
       fireworks[card.color]++
       players[playerNum].splice(cardIndex, 1)
-      this.setState({fireworks: fireworks})
-      this.updateTurn()
-      this.drawCard(playerNum, players)
       console.log("Played")
-      this.setState({log: [...this.state.log, <div key={this.state.log.length}>{playerNum} successfully played {card.color} {card.number}</div>]})
-    } else{
-      this.setState({errors: --this.state.errors})
+      this.drawCard(playerNum, players)
+      this.setState({fireworks: fireworks, log: [...this.state.log, <div key={this.state.log.length}>{playerNum} successfully played {card.color} {card.number}</div>]})
+      if (card.number == 5) this.setState({clues: this.state.clues+1})
       this.updateTurn()
+    } else{
       this.discardCard(cardIndex, playerNum)
-      this.setState({log: [...this.state.log, <div key={this.state.log.length}>{playerNum} made an error with {card.color} {card.number}</div>]})
+      this.setState({errors: --this.state.errors, log: [...this.state.log, <div key={this.state.log.length}>{playerNum} made an error with {card.color} {card.number}</div>]})
+      this.updateTurn()
       //Discard card function draws a card
     }
   }
@@ -93,10 +91,9 @@ class App extends Component {
     let card = players[playerNum][cardIndex]
     discard.push(players[playerNum][cardIndex])
     players[playerNum].splice(cardIndex, 1)
-    this.setState({discard: discard})
-    this.updateTurn()
     this.drawCard(playerNum, players)
-    this.setState({log: [...this.state.log, <div key={this.state.log.length}>{playerNum} discarded {card.color} {card.number}</div>]})
+    this.setState({clues: this.state.clues + 1, discard: discard, log: [...this.state.log, <div key={this.state.log.length}>{playerNum} discarded {card.color} {card.number}</div>]})
+    this.updateTurn()
   }
 
   drawCard(playerNum, players = this.state.players, updatedDeck = this.state.deck){
@@ -110,7 +107,7 @@ class App extends Component {
     var players = this.state.players
     var newHand = this.state.players[playerNumber]
     const clue = color ? color : number
-    console.log(color, number, playerNumber)
+    console.log("Color: "+color, "Card Number: "+number, "Player Num: "+playerNumber)
     if (color){
       for (let i = 0; i < newHand.length; i++){
         if (newHand[i].color === color){
@@ -126,15 +123,20 @@ class App extends Component {
       }
     }
     players[playerNumber] = newHand
-    this.setState({players: players, clues: this.state.clues - 1})
-    this.setState({log: [...this.state.log, <div key={this.state.log.length}>{playerNumber} received clue {clue}</div>]})
+    this.setState({players: players, clues: this.state.clues - 1,
+      log: [...this.state.log, <div key={this.state.log.length}>{playerNumber} received clue {clue}</div>]})
     this.updateTurn()
   }
 
   testClue = (playerNumber, cardIndex) => {
     let card = this.state.players[playerNumber][cardIndex]
     if (!card.clues.color && card.clues.number){
-      return Object.values(this.state.fireworks).includes(card.clues.number-1)
+      // Playable
+      if (card.clues.number === 1) return Object.values(this.state.fireworks).includes(0)
+      else return Object.values(this.state.fireworks).includes(card.clues.number-1)
+    } else if (card.clues.color && !card.clues.number){
+      // All numbers of this color have been played
+      return this.state.fireworks[card.clues.color] < 5
     } else if (card.clues.color && card.clues.number){
       return this.state.fireworks[card.clues.color] === card.clues.number - 1
     } else {
@@ -142,63 +144,34 @@ class App extends Component {
     }
   }
 
-  takeTurn = (playerNumber) => {
-    var takenAction = false
-    for (let i = this.state.turn; i < this.state.playerCount; i++){
-      if (i !== playerNumber){
-        let thisPlayer = this.state.players[i]
-        for (let j = 0; j < thisPlayer.length; j++){
-          if (thisPlayer[j].number === 5 && !thisPlayer[j].clues.number){
-            this.receiveClue("", 5, i)
-            i = this.state.playerCount
-            j = thisPlayer.length
-            takenAction = true
-          }
-        }
-        if (i === this.state.playerCount - 1) {
-          i = -1
-        } else if (i === this.state.turn - 1){
-          i = this.state.playerCount
-        }
-      }
-    }
-    var hand = this.state.players[playerNumber]
-    if (takenAction === false){
-      var clues = hand.map((card, index)=>{if (Object.keys(card.clues).length > 0) {return index} else {return -1}})
-      if (clues.filter(clue=>{return clue !== -1}).length > 0){
-        for (let j = 0; j < clues.length; j++) {
-          if (clues[j] !== -1 && this.testClue(playerNumber, j)) {
-            console.log("AI ",playerNumber," playing card ",j)
-            this.playCard(j, playerNumber)
-            j = clues.length
-          }
-        }
-      } else {
-        console.log("AI ",playerNumber," discarding card ",4)
-        this.discardCard(4, playerNumber)
-      }
-    }
+  testPlayable = (playerNumber, cardIndex) => {
+    let card = this.state.players[playerNumber][cardIndex]
+    return (Object.values(this.state.fireworks).includes(card.clues.number-1) && !Object.values(this.state.fireworks).includes(card.clues.number))
   }
 
+  takeTurn = (playerNumber) => {
+
+  }
+
+  // updateTurn = () => {
+  //   this.setState({endTurn: true})
+  // }
+
   updateTurn = () => {
-    console.log("Updating turn")
-    let turn = this.state.turn
+    console.log("Updating turn",this.state.turn)
     if (this.state.turn === this.state.playerCount-1){
-      turn = 0
       this.setState({turn: 0})
     } else {
-      turn += 1
       this.setState({turn: this.state.turn+1})
     }
-    console.log(turn)
+    console.log("Updated turn successfully?")
   }
 
   render() {
     console.log(this.state)
     var players = []
-    players.push(<Player key={0} name={0} players={this.state.players} playerCount={this.state.playerCount} turn={this.state.turn} giveClue={this.receiveClue} playCard={this.playCard} discardCard={this.discardCard} drawCard={this.drawCard} />)
-    for (let i = 1; i < this.state.playerCount; i++){
-      players.push(<AIPlayer key={i} turn={this.state.turn} takeTurn={this.takeTurn} name={i} hand={this.state.players[i]} />)
+    for (let i = 0; i < this.state.playerCount; i++){
+      players.push(<Player key={i} name={i} clues={this.state.clues} players={this.state.players} playerCount={this.state.playerCount} turn={this.state.turn} giveClue={this.receiveClue} playCard={this.playCard} discardCard={this.discardCard} drawCard={this.drawCard} />)
     }
     return (
       <div className="App">
